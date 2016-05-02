@@ -1,0 +1,550 @@
+﻿<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+@model Ivy.Web.Portal.Areas.Student.ViewModel.StudentHomeViewModel
+@{
+    ViewBag.Title = "Home";
+}
+<div class="container-fluid">
+    <section class="padded">
+        <h1>Welcome back, @ViewBag.DisplayName!                      
+            <div class="pull-right" style="margin-right: -15px;padding-bottom: 10px;">
+                <a href="#" id="btn_change_layout" class="btn btn-purposely">Change Layout <i class="fa fa-edit"></i></a>
+                <a href="@Url.Action("ChooseWidgets","Home")" id="btn_add_layout" class="btn btn-purposely addPortlet">Manage Widgets <i class="fa fa-plus-circle"></i></a>
+            </div>
+            <div class="clearfix"></div>
+        </h1>
+        <div class="row">
+            <form id="frm-widget-order" action="@Url.Action("UpdateWidgetOrder")" method="post">
+            <div id="div_layout" class="row twoColumn">              
+                @for (int i = 0; i < Model.StudentLayOuts.Count; i++ )
+                {
+                    var widget = Model.StudentLayOuts[i];
+                    string userName = "Invalid URL";
+                    var typeId = widget.Widget.WidgetType;
+                    if (typeId == 2)
+                    {
+                        if (widget.Widget.URI != null)
+                        {
+                            string[] urlList = widget.Widget.URI.Split('/');
+                            if (urlList.Length > 3 && urlList[3] != null)
+                            {
+                                userName = (urlList[3].Split('?'))[0];
+                            }
+                        }
+                    }
+                    
+                    <div class="col-xs-12 col-sm-6 col-sm-6 col-lg-4" onmouseup="updateStatus('@userName',this)">
+                        <input type="hidden" name="StudentLayOuts[@i].Widget.Id" value="@widget.Widget.Id" />
+                        <div class="column-content" style="height: 430px;">
+                            <div class="column-right pull-right">
+                                <a role="button" class="toggleInner"><i class="fa fa-minus white"></i></a>
+                                <a role="button" id="@widget.Widget.Id" class="pull-right edit-column"><i class="fa fa-cog white"></i></a>
+                            </div>
+                            <h3>@widget.Widget.Heading.ToUpper()</h3>
+                            <div class="column-inner" style="overflow-y: scroll;">
+                                @switch (typeId)
+                                {
+                                    case 0:    
+                                    case 4:                                
+                                        @Html.Raw(widget.Widget.Content)
+                                        break;
+                                    case 1:
+                                        @Html.Raw(@"<script>function WriteRSS(rssFeedUrl, container)
+                                                    {
+                                                        $.ajax({
+                                                            url: 'Student/Home/LoadRss?rssFeed=' + rssFeedUrl,
+                                                            success: function(data) {
+                   
+                                                                var html = '';
+            
+                                                                for(var i = 0; i < data.length && i < 5; i++) {            
+                                                                    var item = data[i];
+                                                                    //console.log(item);
+                                                                    html += '<p>'
+                                                                    + '<a href=""'
+                                                                    + item.Link
+                                                                    + '"" target=""_blank"">'
+                                                                    + item.Title
+                                                                    + '</a></p>';               
+                
+                                                                    html += '<p>'
+                                                                    + item.Description
+                                                                    + '</p>';
+                                                                }                    
+                                                                $('#rss-' + container).html(html);
+                                                            }
+                                                        });
+                                                    }</script>
+                                                    <div id='rss-" + widget.Widget.Id + "'><script>WriteRSS('" + widget.Widget.URI + "','" + widget.Widget.Id + "');</script></div>")
+                                        break;
+                                    case 2:                                                            
+                                         @Html.Raw(@"<a class='twitter-timeline' data-widget-id='705337624714563584' href='https://twitter.com/PurposelyInc' data-screen-name='"+userName+"'>Tweets by "+userName+"	</a> ")                                                                                
+                                        break;
+                                    case 3:
+                                    @Html.Raw(@"<div class='fb-page' data-href='" + widget.Widget.URI + "' data-tabs='timeline' data-small-header='false' data-adapt-container-width='true' data-hide-cover='false' data-show-facepile='true'><div class='fb-xfbml-parse-ignore'><blockquote cite='" + widget.Widget.URI + "'><a href='" + widget.Widget.URI + "'>Facebook Timeline</a></blockquote></div></div>")
+                                        break;
+                                    case 5:
+                                        @Html.Raw(@"<script>function WriteLatestJobs(container)
+                                                    {
+                                                        $.ajax({
+                                                            url: '/Feed/JobCareerBuilderFeed/LatestJobOpenings',
+                                                            success: function(data) {
+                   
+                                                                var html = '<h4>Results based on your current profile</h4><ul>';
+            
+                                                                for(var i = 0; i < data.Data.length; i++) {            
+                                                                    var item = data.Data[i];
+                                                                    //console.log(item);
+                                                                    html += '<li>'
+                                                                    + '<a href=""javascript:void(0);"" onclick=""viewJob(\'' + item.Id + '\',\'' + item.Source + '\');"">'
+                                                                    + item.JobTitle
+                                                                    + '</a></li>';               
+                                                                }     
+
+                                                                html += '</ul>';
+                                                                $('#job-' + container).html(html);
+                                                            }
+                                                        });
+                                                    }
+                                                    function viewJob(Id, Source) {
+                                                        $.ajax({
+                                                            url: '/Feed/JobCareerBuilderFeed/JobDetail/' + Id + '?source=' + Source,
+                                                            success: function (response) {
+                                                                $('#jobDetailsModal').html(response);
+                                                                $('#jobDetailsModal').modal('show');
+                                                            }
+                                                        });
+                                                    };
+                                                    function job_open_dialog(id, source) {
+                                                        $.ajax({
+                                                            url: '/Feed/JobCareerBuilderFeed/JobApplyWindow/' + id + '?source=' + source,
+                                                            success: function(response) {
+                                                                $('#jobApplyModal').html(response);
+                                                                $('#jobApplyModal').modal('show');
+                                                            },
+                                                            error: function(xhr, ajaxOptions, thrownError) {
+                                                                alert('Job application process failed. Please click the provide feedback tab to the right to fill out a support ticket.');
+                                                            }
+                                                        });
+                                                    }
+                                                    </script>
+                                                    <div id='job-" + widget.Widget.Id + "'><script>WriteLatestJobs('" + widget.Widget.Id + "');</script></div>")
+                                        break;
+                                    case 6:
+                                        @Html.Raw(@"<script>function WriteOverall(container)
+                                                    {
+                                                        $.ajax({
+                                                            url: 'Student/Home/OverAllProgressChart',
+                                                            success: function(data) {
+                   
+                                                                var html = '';
+            
+                                                                for(var i = 0; i < data.Data.length; i++) {            
+                                                                    var item = data.Data[i];
+                                                                    var cssProgress = 'progress-bar-danger';
+                                                                    if (item.PercentComplete > 75)
+                                                                        cssProgress = 'progress-bar-success'
+                                                                    if ((item.PercentComplete > 40) && (item.PercentComplete <= 75))
+                                                                        cssProgress = 'progress-bar-warning';
+                                                                    //console.log(item);
+                                                                    html += ''
+                                                                    + '<p><a href=""' + item.Link + '"">' + item.Name + '</a></p>'
+                                                                    + '<div class=""progress"">'
+                                                                    + '<div style=""width: ' + item.PercentComplete + '%;"" class=""progress-bar ' + cssProgress + '"" role=""progressbar"" data-percentage=""60"">'
+                                                                    + '<span class=""progress-bar-span"">' + item.PercentComplete + '%</span>'
+                                                                    + '<span class=""sr-only"">' + item.PercentComplete + '% Complete</span>'
+                                                                    + '</div></div>';
+                                                                }                    
+                                                                $('#oac-' + container).html(html);
+                                                            }
+                                                        });
+                                                    }</script>
+                                                    <div id='oac-" + widget.Widget.Id + "'><script>WriteOverall('" + widget.Widget.Id + "');</script></div>")
+                                        break;
+                                    case 7:
+                                        @Html.Raw(@"<script>function WriteLeftOff(container)
+                                                    {
+                                                        $.ajax({
+                                                            url: 'Student/Home/UserLastCourseStatus',
+                                                            success: function(data) {
+                   
+                                                                var html = '';
+                                                                                       
+                                                                var item = data.Data;
+                                                                if(item.Id)
+                                                                {
+                                                                    console.log(item);
+                                                                    html += '<p class=""text-center"">'
+                                                                    + '<a class=""course_link"" href=""' + item.Id + '"">'                                                                    
+                                                                    + '<img alt=""' + item.Name + '"" class=""img-responsive"" id=""course_image_link"" src=""' + item.PictureName + '"" style=""max-width:95%; height:auto; width: 90%;"" />'
+                                                                    + '</a></p>'
+                                                                    + '<h2 style=""text-align:center""><a class=""course_link"" href=""' + item.Id + '"" id=""course_link_image"">' + item.Name + '</a></h2>';
+           
+                                                                    $('#lo-' + container).html(html);
+                                                                }
+                                                            }
+                                                        });
+                                                    }</script>
+                                                    <div id='lo-" + widget.Widget.Id + "'><script>WriteLeftOff('" + widget.Widget.Id + "');</script></div>")
+                                        break;
+                                }
+                            </div>
+                        </div>
+                    </div>   
+                }
+            </div>
+           </form>
+        </div>
+    </section>
+    <div class="clearfix"></div>
+
+@*    <section id="contact">
+
+        <div class="container">
+            <div class="row text-center ">
+                <div class="col-md-6 col-md-offset-3 col-sm-6 col-sm-offset-3">
+                    <h2 class="head-set">OUR LOCATION</h2>
+                </div>
+            </div>
+            <div class="row text-center">
+
+
+                <div class="col-md-12">
+                    @Html.Raw(Model.Adress.AddressLocation)
+                    @Html.Raw(Model.Adress.EmailId)
+                </div>
+
+            </div>
+        </div>
+    </section>*@
+
+</div>
+
+
+<div class="modal fade" id="customizeModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Select Your Layout Below:</h4>
+            </div>
+            <div class="modal-body">
+                <p>Choose a one, two, or three column layout below. Don't worry, you can arrange it as you like!</p>
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <h3>One Column</h3>
+                        <a href="#oneColumn" id="btn_layout_one"><i class="fa fa-align-justify" style="font-size: 50px;"></i></a>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3>Two Column</h3>
+                        <a href="#twoColumn" id="btn_layout_two"><i class="fa fa-th-large" style="font-size: 50px;"></i></a>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3>Three Column</h3>
+                        <a href="#threeColumn" id="btn_layout_three"><i class="fa fa-th" style="font-size: 50px;"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="allWidgetModel" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Update Widget details</h4>
+            </div>
+            @Html.Partial("_NewWidget", Model.AllLayOuts)
+            <div class="modal-footer">
+                <button type="button" id="btn_update_widgets" class="btn btn-default">Update Widgets</button>
+                <button type="button" id="close_widget_window" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade jobApplyModal" id="jobApplyModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+   
+</div>
+
+<div class="modal fade" id="jobDetailsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    
+</div>
+
+<div class="modal fade" id="deleteWidgetModel" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Do you want to delete Widget</h4>
+            </div>
+            <div class="modal-body text-center">
+                <input type="hidden" id="widget_id_delete" />
+                <p>
+                    <button role="button" id="btn_delete_widget" class="btn btn-danger btn-block" data-dismiss="modal">Delete it!</button>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s); js.id = id;
+    js.src = "//connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v2.5";
+    fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+</script>
+
+
+<script>
+	!function (d, s, id) { var js, fjs = d.getElementsByTagName(s)[0], p = /^http:/.test(d.location) ? 'http' : 'https'; if (!d.getElementById(id)) { js = d.createElement(s); js.id = id; js.src = p + "://platform.twitter.com/widgets.js"; fjs.parentNode.insertBefore(js, fjs); } }(document, "script", "twitter-wjs");
+</script>
+
+<script>
+    $(document).ready(function () {
+
+        $.ajaxSetup({
+            beforeSend: function () {               
+                $("#loading").show();
+            },
+            complete: function () {                
+                $("#loading").hide();
+            }
+        });
+
+        $('#btn_change_layout').click(function () {
+            $('#customizeModal').modal("show");
+        });
+
+        DragablePanel("col-xs-12 col-sm-6 col-sm-6 col-lg-4 column-content", "col-xs-12 col-sm-6 col-sm-6 col-lg-4 sortable-placeholder");
+
+        $("#btn_layout_one").click(function () {
+            $("#div_layout").children("div").removeClass('col-sm-6').removeClass('col-lg-4');
+            $('#customizeModal').modal("hide");
+            DragablePanel("col-lg-12 column-content", "col-lg-12 sortable-placeholder");
+        });
+
+        $("#btn_layout_two").click(function () {
+            $("#div_layout").children("div").removeClass('col-lg-4').addClass('col-sm-6');
+            $('#customizeModal').modal("hide");
+            DragablePanel("col-lg-12 col-sm-6 column-content", "col-lg-12 col-sm-6 sortable-placeholder");
+        });
+
+        $("#btn_layout_three").click(function () {
+            $("#div_layout").children("div").addClass('col-lg-4');
+            $('#customizeModal').modal("hide");
+            DragablePanel("col-lg-12 col-sm-6 col-lg-4 column-content", "col-lg-12 col-sm-6 col-lg-4 sortable-placeholder");
+        });
+
+        $('.toggleInner').click(function () {
+            $(this).parent('div').siblings('.column-inner').slideToggle({
+                direction: "up"
+            }, 300);
+            $(this).toggleClass('column-inner-open');
+        });
+
+        //// Adding a Section with click -- !!! MAY NEED SOME TWEAKING FROM DEV !!!
+        $('.addPortlet').click(function () {
+            $('#clone_wrapper div:first')
+                .appendTo($('#clone_wrapper')
+                .show());
+        });
+
+        $('.close-column').click(function () {
+            $('.column-content').hide();
+        });
+
+        function DragablePanel(conectedWith, placeHolder) {           
+
+            $('.twoColumn').sortable({
+                revert: true,
+                forcePlaceholderSize: true,
+                dragImage: null,
+                iframeFix: true,
+                connectWith: conectedWith,
+                placeholder: placeHolder,
+                start: function (event, ui) {                    
+                    ui.item.toggleClass("highlight");                                    
+                },
+                stop: function (event, ui) {
+                    ui.item.toggleClass("highlight");
+                },
+                sort: function (event, ui) {     
+                    var $target = $(event.target);
+                    var top = event.pageY - $target.offsetParent().offset().top;// - (ui.helper.outerHeight(true) / 2);
+                    var left = event.pageX - $target.offsetParent().offset().left - (ui.helper.outerWidth(true) / 2);
+                    
+                    ui.helper.css({'top' : top + 'px'});
+                    ui.helper.css({'left' : left + 'px'});   
+                }
+            });
+
+            $(".twoColumn").disableSelection();
+        }
+        $('.edit-column').click(function () {
+            $('#widget_id_delete').val($(this).attr('id'));
+            $('#deleteWidgetModel').modal("show");
+        });
+
+        $('#btn_delete_widget').click(function () {
+            var id = $('#widget_id_delete').val();
+            $('#' + id).parents().eq(2).remove();
+
+            $.ajax({
+                type: "POST",
+                url: '@Url.Action("DeleteWidget", "Home")',
+                data: { Id: id },
+                cache: false,
+                success: function (data) {
+                    if (data.IsError) {
+                        ShowAlert('Error while delete widget...!', data.Error);
+                    }
+                },
+                error: function (data) {
+                    alert("Deleting this widget failed.  Please click the provide feedback tab to the right to fill out a support ticket.");
+                }
+            });
+        });
+
+        //$('#btn_add_layout').click(function () {
+        //    $('#allWidgetModel').modal("show");
+        //});
+
+        $('#btn_update_widgets').click(function () {
+            var widgetIds = new Array();
+            $('input:checkbox.select-widget').each(function () {
+                if (this.checked) {
+                    widgetIds.push($(this).attr('name'));
+                }
+            });          
+
+            $.ajax({
+                url: '@Url.Action("UpdateWidgetDetails", "Home")',
+                type: "GET",
+                data: { widgetIds: widgetIds.toString() },
+                cache: false,
+                async: false,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                }
+            });
+
+            ShowAlert('Widgets have been updated', 'Widgets have been updated..!');
+
+            $('#close_widget_window').click();
+            location.reload();
+
+        });
+
+        function ShowAlert(title, message) {
+            BootstrapDialog.show({
+                title: title,
+                message: message
+            });
+        }
+
+        if($('#courseOverAllChart').length)
+        {
+            rederCourseProgressChart();
+        }
+        if($('#course_link_image').length)
+        {
+            LoadLastCourse();
+        }
+
+        function LoadLastCourse()
+        {
+            var LastViewdCourse = @Html.Raw(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(Model.UserLastCourse));
+            if(LastViewdCourse!==null)
+            {
+                $("course_image_link id").attr('src','https://s3.amazonaws.com/purposely-files/'+LastViewdCourse.Id);
+                $('.course_link').attr('href',"#");
+                $('#course_link_image').text(LastViewdCourse.Name);
+            }
+        }
+
+
+        function rederCourseProgressChart() {           
+           
+            @*var doughnutData = @Model.CourseOverAllProgress;
+            console.log(doughnutData);
+            var canvas = document.getElementById("courseOverAllChart");
+            var ctx = document.getElementById("courseOverAllChart").getContext("2d");
+            window.myDoughnut = new Chart(ctx).Doughnut(doughnutData, {
+                responsive: false,
+                onAnimationComplete: addText
+            });
+
+            var myDoughnutChart = new Chart(ctx).Doughnut(doughnutData, {
+                responsive: false,
+                onAnimationComplete: addText
+            });
+           
+
+            function addText() {
+
+                var canvas = document.getElementById("courseOverAllChart");
+                var ctx = document.getElementById("courseOverAllChart").getContext("2d");
+
+                var cx = canvas.width / 2;
+                var cy = canvas.height / 2;
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '14px verdana';
+                ctx.fillStyle = 'black';
+                ctx.fillText("Your Lessons Progress", cx, cy);
+
+            }*@
+        }
+    });
+
+    function updateStatus(userName, $element){
+        var twitterFeed = "@Html.Raw(@"<a class='twitter-timeline' data-widget-id='705337624714563584' href='https://twitter.com/PurposelyInc' data-screen-name='[userName]'>Tweets by '[userName]'</a> ")";       
+        if(userName !== "Invalid URL")
+        {
+            var $twitter = $($element).find(".twitter-timeline").parent();
+            twitterFeed = twitterFeed.split('[userName]').join(userName);         
+            setTimeout(function()
+            {
+                $twitter.html(twitterFeed);
+                twttr.widgets.load();
+            },1000);
+        }
+
+        setTimeout(function()
+        {
+            $('input').each(function(index)
+            {
+                $(this).attr('name','StudentLayOuts['+index+'].Widget.Id');
+            });
+
+            var $formWidget = $('#frm-widget-order');
+        
+            $.ajax({            
+                type: "POST",
+                global: false,
+                url:  $formWidget.attr('action'),
+                data: $formWidget.serialize(),
+                dataType: "JSON",
+                success: function (data) {                   
+                },
+                error: function (data) {
+                    //alert("Reordering widgets failed. Please click the provide feedback tab to the right to fill out a support ticket.");
+                }});
+        },1000);
+    }  
+
+</script>
